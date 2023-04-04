@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   IMAGE_NAME: ghcr.io/cheap-k8s/cheap-k8s/caddy
   IMAGE_TAG: latest
