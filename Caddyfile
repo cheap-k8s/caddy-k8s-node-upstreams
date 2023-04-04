@@ -6,10 +6,10 @@
 
     lb_retries 1
     lb_try_duration 5s
-    lb_try_interval 2s
+    lb_try_interval 500ms
 
     fail_duration 30s
     unhealthy_status 502
-    unhealthy_latency 2s
+    unhealthy_latency 500ms
   }
 }
