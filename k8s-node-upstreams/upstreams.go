@@ -9,9 +9,9 @@ import (
 	"time"
 
 	compute "cloud.google.com/go/compute/apiv1"
+	computepb "cloud.google.com/go/compute/apiv1/computepb"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
-	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -118,10 +118,13 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	for {
 		ips, err := l.listInstanceIps()
 		if err == nil {
-			upstreams := make([]*reverseproxy.Upstream, len(ips))
+			upstreams := make([]*reverseproxy.Upstream, len(ips)*2)
 			for i, ip := range ips {
-				upstreams[i] = &reverseproxy.Upstream{
-					Dial: net.JoinHostPort(ip, "32080"),
+				upstreams[i*2] = &reverseproxy.Upstream{
+					Dial: net.JoinHostPort(ip, "30080"),
+				}
+				upstreams[i*2+1] = &reverseproxy.Upstream{
+					Dial: net.JoinHostPort(ip, "31080"),
 				}
 			}
 			l.upstreams = upstreams
