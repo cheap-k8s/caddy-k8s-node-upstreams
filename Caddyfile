@@ -8,6 +8,7 @@
     lb_try_interval 500ms
 
     fail_duration 60s
+    max_fails 1
     unhealthy_status 5xx
     unhealthy_latency 1s
   }
