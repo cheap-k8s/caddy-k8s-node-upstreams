@@ -118,13 +118,10 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	for {
 		ips, err := l.listInstanceIps()
 		if err == nil {
-			upstreams := make([]*reverseproxy.Upstream, len(ips)*2)
+			upstreams := make([]*reverseproxy.Upstream, len(ips))
 			for i, ip := range ips {
-				upstreams[i*2] = &reverseproxy.Upstream{
+				upstreams[i] = &reverseproxy.Upstream{
 					Dial: net.JoinHostPort(ip, "30080"),
-				}
-				upstreams[i*2+1] = &reverseproxy.Upstream{
-					Dial: net.JoinHostPort(ip, "31080"),
 				}
 			}
 			l.upstreams = upstreams
