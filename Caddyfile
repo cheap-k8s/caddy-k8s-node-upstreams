@@ -4,12 +4,11 @@
       node_name_prefix {$NODE_NAME_PREFIX}
     }
 
-    lb_retries 1
-    lb_try_duration 5s
+    lb_try_duration 3s
     lb_try_interval 500ms
 
-    fail_duration 3s
+    fail_duration 60s
     unhealthy_status 5xx
-    unhealthy_latency 500ms
+    unhealthy_latency 1s
   }
 }
