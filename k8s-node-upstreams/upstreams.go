@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -117,6 +118,7 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	l.updateing = true
 	for {
 		ips, err := l.listInstanceIps()
+		l.k8sNodeUpstream.logger.Info("ips: " + strings.Join(ips, ","))
 		if err == nil {
 			upstreams := make([]*reverseproxy.Upstream, len(ips))
 			for i, ip := range ips {
