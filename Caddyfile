@@ -1,4 +1,7 @@
 {$DOMAIN_NAMES} {
+  log {
+    level DEBUG
+  }
   reverse_proxy {
     dynamic k8s_node {
       node_name_prefix {$NODE_NAME_PREFIX}
