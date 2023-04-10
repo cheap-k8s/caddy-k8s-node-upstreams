@@ -40,7 +40,7 @@ func Test_k8sNodeLookup_listInstanceIps(t *testing.T) {
 				freshness:       tt.fields.freshness,
 				upstreams:       tt.fields.upstreams,
 			}
-			got, err := l.listInstanceIps()
+			got, err := l.listNodeIps()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("k8sNodeLookup.listInstanceIps() error = %v, wantErr %v", err, tt.wantErr)
 				return

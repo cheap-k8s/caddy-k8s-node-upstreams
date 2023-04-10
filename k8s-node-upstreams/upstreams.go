@@ -118,11 +118,12 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	defer lookupMu.Unlock()
 	l.updateing = true
 	for {
-		ips, err := l.listInstanceIps()
-		l.k8sNodeUpstream.logger.Info("ips: " + strings.Join(ips, ","))
+		nodeIps, err := l.listNodeIps()
+		l.k8sNodeUpstream.logger.Info("node ips: " + strings.Join(nodeIps, ","))
 		if err == nil {
-			l.updateIpTimestamps(ips)
-			activeIps := l.getActiveIps()
+			l.updateIpTimestamps(nodeIps)
+			activeIps := l.getActiveIps(nodeIps)
+			l.k8sNodeUpstream.logger.Info("activeIps: " + strings.Join(activeIps, ","))
 			upstreams := make([]*reverseproxy.Upstream, len(activeIps))
 			for i, ip := range activeIps {
 				upstreams[i] = &reverseproxy.Upstream{
@@ -140,29 +141,31 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	done <- true
 }
 
-func (l *k8sNodeLookup) getActiveIps() []string {
+func (l *k8sNodeLookup) getActiveIps(nodeIps []string) []string {
 	now := time.Now()
-	ips := make([]string, 0)
-	for ip, t := range l.ipTimestamps {
-		if now.Sub(t) >= 5*time.Minute {
-			ips = append(ips, ip)
+	activeIps := make([]string, 0)
+	for _, ip := range nodeIps {
+		if t, ok := l.ipTimestamps[ip]; ok {
+			if now.Sub(t) >= 5*time.Minute {
+				activeIps = append(activeIps, ip)
+			}
 		}
 	}
-	l.k8sNodeUpstream.logger.Info("activeIps: " + strings.Join(ips, ","))
-	return ips
+	return activeIps
 }
 
-func (l *k8sNodeLookup) updateIpTimestamps(ips []string) {
+func (l *k8sNodeLookup) updateIpTimestamps(nodeIps []string) {
 	initialized := len(l.ipTimestamps) > 0
 
 	var s time.Time
 	if initialized {
 		s = time.Now()
 	} else {
+		l.ipTimestamps = make(map[string]time.Time)
 		s = time.Now().Add(-5 * time.Minute)
 	}
 
-	for _, ip := range ips {
+	for _, ip := range nodeIps {
 		if _, ok := l.ipTimestamps[ip]; !ok {
 			l.ipTimestamps[ip] = s
 		}
@@ -173,7 +176,7 @@ func (l *k8sNodeLookup) updateIpTimestamps(ips []string) {
 	}
 }
 
-func (l *k8sNodeLookup) listInstanceIps() ([]string, error) {
+func (l *k8sNodeLookup) listNodeIps() ([]string, error) {
 	ctx := context.Background()
 	credentials, err := google.FindDefaultCredentials(ctx)
 	if err != nil {
@@ -202,7 +205,9 @@ func (l *k8sNodeLookup) listInstanceIps() ([]string, error) {
 		}
 		if len(resp.Value.Instances) > 0 {
 			for _, i := range resp.Value.Instances {
-				ips = append(ips, *i.NetworkInterfaces[0].NetworkIP)
+				if *i.Status == "RUNNING" {
+					ips = append(ips, *i.NetworkInterfaces[0].NetworkIP)
+				}
 			}
 		}
 	}

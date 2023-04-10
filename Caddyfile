@@ -7,12 +7,11 @@
       node_name_prefix {$NODE_NAME_PREFIX}
     }
 
-    lb_try_duration 3s
-    lb_try_interval 500ms
+    lb_retries 2
 
-    fail_duration 60s
-    max_fails 1
-    unhealthy_status 5xx
-    unhealthy_latency 1s
+    fail_duration 5s
+    max_fails 2
+    unhealthy_status 502
+    unhealthy_latency 5s
   }
 }
