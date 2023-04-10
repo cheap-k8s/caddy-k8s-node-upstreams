@@ -93,6 +93,7 @@ func (u K8sNodeUpstreams) String() string {
 
 type k8sNodeLookup struct {
 	k8sNodeUpstream *K8sNodeUpstreams
+	ipTimestamps    map[string]time.Time
 	updateing       bool
 	freshness       time.Time
 	upstreams       []*reverseproxy.Upstream
@@ -120,8 +121,10 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 		ips, err := l.listInstanceIps()
 		l.k8sNodeUpstream.logger.Info("ips: " + strings.Join(ips, ","))
 		if err == nil {
-			upstreams := make([]*reverseproxy.Upstream, len(ips))
-			for i, ip := range ips {
+			l.updateIpTimestamps(ips)
+			activeIps := l.getActiveIps()
+			upstreams := make([]*reverseproxy.Upstream, len(activeIps))
+			for i, ip := range activeIps {
 				upstreams[i] = &reverseproxy.Upstream{
 					Dial: net.JoinHostPort(ip, "30080"),
 				}
@@ -135,6 +138,39 @@ func (l *k8sNodeLookup) updateUpstreams(done chan bool) {
 	}
 	l.updateing = false
 	done <- true
+}
+
+func (l *k8sNodeLookup) getActiveIps() []string {
+	now := time.Now()
+	ips := make([]string, 0)
+	for ip, t := range l.ipTimestamps {
+		if now.Sub(t) >= 5*time.Minute {
+			ips = append(ips, ip)
+		}
+	}
+	l.k8sNodeUpstream.logger.Info("activeIps: " + strings.Join(ips, ","))
+	return ips
+}
+
+func (l *k8sNodeLookup) updateIpTimestamps(ips []string) {
+	initialized := len(l.ipTimestamps) > 0
+
+	var s time.Time
+	if initialized {
+		s = time.Now()
+	} else {
+		s = time.Now().Add(-5 * time.Minute)
+	}
+
+	for _, ip := range ips {
+		if _, ok := l.ipTimestamps[ip]; !ok {
+			l.ipTimestamps[ip] = s
+		}
+	}
+
+	for ip, t := range l.ipTimestamps {
+		l.k8sNodeUpstream.logger.Info("ip: " + ip + ", stamp: " + t.String())
+	}
 }
 
 func (l *k8sNodeLookup) listInstanceIps() ([]string, error) {
